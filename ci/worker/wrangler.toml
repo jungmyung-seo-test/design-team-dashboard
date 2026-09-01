@@ -2,6 +2,11 @@ name = "pd-board-refresh"
 main = "index.js"
 compatibility_date = "2026-01-01"
 
+# workers.dev 주소는 쓴다. 다만 버전별 Preview URL 은 끈다 —
+# 갱신을 걸 수 있는 공개 입구가 배포할 때마다 하나씩 늘어나기 때문이다.
+workers_dev  = true
+preview_urls = false
+
 [vars]
 GH_REPO = "jungmyung-seo-test/design-team-dashboard"
 GH_REF  = "main"

@@ -573,15 +573,15 @@ document.getElementById("mSynced").textContent = META.fetchedAt;
    브라우저는 지라를 직접 부르지 않는다 — 토큰이 페이지에 박히고 CORS 도 막힌다.
    대신 Cloudflare Worker 에 "갱신해 줘"라고만 말한다. Worker 가 GitHub 토큰을 쥐고
    Actions 워크플로를 실행하면, 그 워크플로가 지라를 조회해 이 페이지를 다시 만들어
-   Pages 에 배포한다. 2~3분 걸리므로 끝날 때까지 status.json 을 폴링한다.
+   Pages 에 배포한다. 40초쯤 걸리므로 끝날 때까지 status.json 을 폴링한다.
    META.refreshApi 가 없으면 버튼은 숨은 채로 남는다. */
 (function(){
   const rb = document.getElementById("mRefresh");
   if (!META.refreshApi) return;
   rb.hidden = false;
-  rb.title = "지라를 다시 조회해 보드를 새로 만듭니다 (2~3분)";
+  rb.title = "지라를 다시 조회해 보드를 새로 만듭니다 (약 1분)";
 
-  const POLL = 5000, LIMIT = 8 * 60 * 1000;
+  const POLL = 4000, LIMIT = 5 * 60 * 1000;   // 실측 34~43초. 상한은 넉넉히 5분
   let busy = false;
 
   const label = (t, spin) => {
@@ -623,8 +623,16 @@ document.getElementById("mSynced").textContent = META.fetchedAt;
     if (busy) return;
     busy = true; rb.disabled = true; label("요청 중…", true);
     try {
-      const r = await fetch(META.refreshApi, {method:"POST", headers:{"Content-Type":"application/json"}});
+      const h = {"Content-Type":"application/json"};
+      if (META.refreshKey) h["X-Board-Key"] = META.refreshKey;   // 값이 없으면 안 보낸다
+      const r = await fetch(META.refreshApi, {method:"POST", headers:h});
       if (!r.ok) throw new Error(r.status);
+      const res = await r.json().catch(() => ({}));
+      if (res.recent) {                 // 방금 끝난 갱신이 있다 — 또 돌릴 이유가 없다
+        idle("방금 갱신됨");
+        setTimeout(() => idle(), 4000);
+        return;
+      }
       poll(Date.now());                 // 이미 돌고 있던 경우(already)도 그대로 기다리면 된다
     } catch (e) {
       idle("요청 실패 · 다시 시도");

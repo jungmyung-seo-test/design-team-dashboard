@@ -43,6 +43,7 @@ jobs:
         env:
           BOARD_CONFIG: ${{ secrets.BOARD_CONFIG }}
           REFRESH_API:  ${{ vars.REFRESH_API }}
+          REFRESH_KEY:  ${{ secrets.REFRESH_KEY }}
         run: |
           python3 ci/build/agg.py
           python3 ci/build/one.py

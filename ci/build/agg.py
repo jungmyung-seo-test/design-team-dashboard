@@ -208,6 +208,8 @@ KST = datetime.timezone(datetime.timedelta(hours=9))
 # 값이 없으면 버튼은 숨은 채로 남는다 — 누를 대상이 없는 버튼을 보여주지 않기 위해서다.
 META=dict(fetchedAt=datetime.datetime.now(KST).strftime("%Y-%m-%d %H:%M KST"),
           refreshApi=(os.environ.get("REFRESH_API") or None),
+          # 선택. Worker 에 REFRESH_KEY 를 설정했을 때만 넣는다. 값은 암호화된 보드 안에만 있다.
+          refreshKey=(os.environ.get("REFRESH_KEY") or None),
           doneFrom=CFG['jira'].get('doneFrom', "2026-07-01"), createdFrom=CUT,
           workIssues=sum(v['total'] for v in mem.values()),
           activeIssues=sum(v['active'] for v in mem.values()),
