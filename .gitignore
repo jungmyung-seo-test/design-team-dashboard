@@ -1,0 +1,24 @@
+# 실명 26명이 들어 있다. 절대 커밋하지 않는다 — GitHub 시크릿 BOARD_CONFIG 로만 쓴다.
+ci/BOARD_CONFIG.json
+ci/BOARD_CONFIG.oneline.json
+
+# 빌드 중간 산출물 (지라 원본·집계·평문 보드 모두 개인정보를 담는다)
+raw/
+dist/
+_plain.html
+LOAD.json
+DESIGN.json
+META.json
+ACCT.json
+ISSUES.json
+ONE.json
+
+# 예전 수동 파이프라인 산출물. 리포에 복사하지 않는 것이 원칙이지만,
+# 실수로 통째로 복사했을 때를 대비해 여기서도 막는다 (실명·티켓 제목이 들어 있다).
+pd/
+site/
+site-locked/
+핸드오프.md
+
+# macOS
+.DS_Store

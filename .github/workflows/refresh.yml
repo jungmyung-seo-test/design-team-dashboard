@@ -1,0 +1,74 @@
+name: refresh
+
+on:
+  schedule:
+    - cron: '0 0 * * 1-5'        # 00:00 UTC = 09:00 KST, 평일
+  workflow_dispatch:              # 보드의 '지금 갱신' 버튼이 Worker 를 통해 부른다
+
+# 26명이 동시에 눌러도 한 번에 하나만 돈다. 진행 중인 갱신은 취소하지 않는다.
+concurrency:
+  group: board-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install --quiet cryptography
+
+      # 공개 리포는 Actions 로그도 공개다. 실명이 로그에 찍히지 않도록
+      # 스크립트는 기본적으로 이름을 가린다(BOARD_VERBOSE 를 켜지 않는다).
+      - name: 지라 조회
+        env:
+          BOARD_CONFIG: ${{ secrets.BOARD_CONFIG }}
+          JIRA_EMAIL:   ${{ secrets.JIRA_EMAIL }}
+          JIRA_TOKEN:   ${{ secrets.JIRA_TOKEN }}
+        run: python3 ci/build/fetch.py
+
+      - name: 집계
+        env:
+          BOARD_CONFIG: ${{ secrets.BOARD_CONFIG }}
+          REFRESH_API:  ${{ vars.REFRESH_API }}
+        run: |
+          python3 ci/build/agg.py
+          python3 ci/build/one.py
+
+      - name: 보드 생성
+        env:
+          BOARD_CONFIG: ${{ secrets.BOARD_CONFIG }}
+        run: python3 ci/build/mk.py
+
+      # 여기서 막히면 배포하지 않는다. 옛 보드가 그대로 남는 편이
+      # 반쪽짜리 보드로 덮어쓰는 것보다 낫다.
+      - name: 검증
+        env:
+          BOARD_CONFIG: ${{ secrets.BOARD_CONFIG }}
+        run: python3 ci/build/verify.py
+
+      - name: 잠금
+        env:
+          BOARD_PASSWORD: ${{ secrets.BOARD_PASSWORD }}
+        run: python3 ci/build/lock.py _plain.html dist/index.html
+
+      # 리포에 커밋하지 않고 Pages 로 바로 배포한다.
+      # 공개 리포 히스토리에 암호문 스냅샷이 쌓이지 않게 하기 위해서다.
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

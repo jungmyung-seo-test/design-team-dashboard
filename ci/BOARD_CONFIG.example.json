@@ -1,0 +1,59 @@
+{
+ "roster": [
+  {
+   "name": "홍길동",
+   "unit": "Core UX Design",
+   "role": "MSS",
+   "mgr": true
+  },
+  {
+   "name": "김디자",
+   "unit": "Discovery Design",
+   "role": "MSS",
+   "mgr": false
+  }
+ ],
+ "oneGroups": {
+  "Core UX Design": {
+   "id": "00000000-0000-0000-0000-000000000000",
+   "m": [
+    "홍길동"
+   ]
+  },
+  "Discovery Design": {
+   "id": "00000000-0000-0000-0000-000000000000",
+   "m": [
+    "홍길동"
+   ]
+  },
+  "Engagement Design": {
+   "id": "00000000-0000-0000-0000-000000000000",
+   "m": [
+    "홍길동"
+   ]
+  },
+  "Commerce Design": {
+   "id": "00000000-0000-0000-0000-000000000000",
+   "m": [
+    "홍길동"
+   ]
+  }
+ },
+ "oneMeta": {
+  "board": "https://jira.team.musinsa.com/jira/software/c/projects/PD/boards/11198",
+  "filter": "FTD+one밀도감",
+  "jql": "…",
+  "unknown": [],
+  "groupNote": "Jira 그룹 membersOf() 결과에서 실제로 담당 이슈가 있는 인원만 뽑은 것입니다."
+ },
+ "jira": {
+  "baseUrl": "https://musinsa-oneteam.atlassian.net",
+  "groupId": "00000000-0000-0000-0000-000000000000",
+  "createdFrom": "2026-01-01",
+  "doneFrom": "2026-07-01",
+  "oneJql": "assignee IN membersOf(\"id:__GROUP__\") AND ( (project IN (FT) AND issuetype = Initiative) OR (project = PD AND issuetype IN (Epic, Design) AND labels IN (\"one밀도감_코어UX\",\"one밀도감_디스커버리\",\"one밀도감_인게이지먼트\",\"one밀도감_커머스\")) ) ORDER BY Rank ASC"
+ },
+ "expect": {
+  "minIssues": 100
+ }
+}

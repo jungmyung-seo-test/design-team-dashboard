@@ -1,0 +1,12 @@
+name = "pd-board-refresh"
+main = "index.js"
+compatibility_date = "2026-01-01"
+
+[vars]
+GH_REPO = "jungmyung-seo-test/design-team-dashboard"
+GH_REF  = "main"
+# 보드가 서비스되는 Origin. 여기 없는 곳에서 온 요청은 거절한다.
+ALLOWED_ORIGIN = "https://jungmyung-seo-test.github.io"
+
+# GH_TOKEN 은 파일에 적지 않는다:
+#   npx wrangler secret put GH_TOKEN
