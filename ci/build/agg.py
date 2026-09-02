@@ -30,6 +30,9 @@ def norm(n):
 
 WORK=[norm(n) for n in load('work')]
 CONT=[norm(n) for n in load('cont')]
+# 조상 전용 — fetch.py 가 담당자·생성일 조건 없이 부모 키를 따라 가져온 컨테이너.
+# 체인 추적에만 쓰고 집계 건수에는 넣지 않는다.
+ANC=[norm(n) for n in load('anc')] if os.path.exists('raw/anc.json') else []
 
 DROPPED={'Dropped','철회/반려/취소'}
 CUT=CFG['jira'].get('createdFrom','2026-01-01')   # fetch.py 의 JQL 과 반드시 같아야 한다
@@ -42,8 +45,16 @@ for x in WORK+CONT:
     if x['st'] in DROPPED: _dr+=1; continue      # 중단(Dropped·철회/반려/취소) 제외
     d.setdefault(x['k'], x)
 print('중단으로 제외:', _dr)
-ALL=list(d.values()); byk=d
+ALL=list(d.values())
+# byk 는 조상 추적용 지도다. 여기에 ANC 를 얹어야 상위 Epic 이 다른 팀 담당이라
+# 조회되지 않은 경우에도 최상위 Initiative 까지 올라갈 수 있다.
+# d 자체에는 넣지 않는다 — 넣으면 집계 건수가 부풀고 옛 티켓이 섞인다.
+byk=dict(d)
+_added=0
+for x in ANC:
+    if x['k'] not in byk: byk[x['k']]=x; _added+=1
 print('전체 고유', len(ALL), collections.Counter(x['t'] for x in ALL))
+print(f'조상 보강: {_added}건 (집계 제외, 체인 추적 전용)')
 print('Initiative 프로젝트:', collections.Counter(x['k'].split('-')[0] for x in ALL if x['t']=='Initiative'))
 
 LEAF={'Design','Task','부작업','작업'}   # '작업'은 UXR 프로젝트의 실무 유형

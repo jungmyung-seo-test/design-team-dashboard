@@ -10,7 +10,7 @@
 
 환경변수: JIRA_EMAIL · JIRA_TOKEN · BOARD_CONFIG
 """
-import base64, json, os, sys, time, urllib.error, urllib.request
+import base64, collections, json, os, sys, time, urllib.error, urllib.request
 
 CFG   = json.loads(os.environ['BOARD_CONFIG'])
 J     = CFG['jira']
@@ -49,7 +49,11 @@ QUERIES = {
 CATKEY = {'new': '해야 할 일', 'indeterminate': '진행 중', 'done': '완료'}
 
 
-def call(path, body=None, tries=4):
+class SoftFail(Exception):
+    """이 요청만 실패했다는 뜻. 전체 조회를 중단시키지 않는다."""
+
+
+def call(path, body=None, tries=4, soft=False):
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(BASE + path, data=data, headers=HEAD,
                                  method='POST' if data else 'GET')
@@ -63,6 +67,8 @@ def call(path, body=None, tries=4):
                 wait = int(e.headers.get('Retry-After') or 2 ** (n + 1))
                 print(f'  {e.code} — {wait}s 뒤 재시도', flush=True)
                 time.sleep(wait); continue
+            if soft:
+                raise SoftFail(f'{e.code} {body_txt[:120]}')
             raise SystemExit(f'Jira {e.code} {path}\n{body_txt}')
         except urllib.error.URLError as e:
             if n < tries - 1:
@@ -79,7 +85,7 @@ def normalize(issues):
     return issues
 
 
-def search(jql, fields):
+def search(jql, fields, soft=False, quiet=False):
     """신형 /search/jql (nextPageToken). 없으면 구형 /search (startAt) 로 폴백."""
     out, token, page = [], None, 0
     while True:
@@ -87,7 +93,7 @@ def search(jql, fields):
         if token:
             body['nextPageToken'] = token
         try:
-            r = call('/rest/api/3/search/jql', body)
+            r = call('/rest/api/3/search/jql', body, soft=soft)
         except SystemExit:
             if page == 0:
                 print('  /search/jql 실패 — 구형 /search 로 폴백', flush=True)
@@ -96,7 +102,8 @@ def search(jql, fields):
         out += r.get('issues') or []
         page += 1
         token = r.get('nextPageToken')
-        print(f'  page {page}: +{len(r.get("issues") or [])} (누적 {len(out)})', flush=True)
+        if not quiet:
+            print(f'  page {page}: +{len(r.get("issues") or [])} (누적 {len(out)})', flush=True)
         if not token or r.get('isLast'):
             break
         if page > 60:
@@ -118,9 +125,63 @@ def search_legacy(jql, fields):
     return out
 
 
+def parent_keys(issues):
+    out = set()
+    for n in issues:
+        p = (n.get('fields') or {}).get('parent') or {}
+        if p.get('key'):
+            out.add(p['key'])
+    return out
+
+
+def by_keys(keys, fields):
+    """키로 직접 가져온다. 한 배치가 실패하면 반으로 쪼개 살릴 수 있는 만큼 살린다.
+       (없는 키·권한 없는 키가 하나 섞이면 그 배치 전체가 에러로 떨어지기 때문)"""
+    keys = sorted(keys)
+    out = []
+    stack = [keys[i:i + 80] for i in range(0, len(keys), 80)]
+    while stack:
+        chunk = stack.pop()
+        try:
+            out += search('key IN (' + ','.join(chunk) + ')', fields, soft=True, quiet=True)
+        except SoftFail as e:
+            if len(chunk) == 1:
+                print(f'  건너뜀 {chunk[0]}: {e}', flush=True)
+            else:
+                mid = len(chunk) // 2
+                stack += [chunk[:mid], chunk[mid:]]
+    return out
+
+
+def ancestors(seed):
+    """조상 체인을 끝까지 잇는다.
+
+    work/cont 조회는 `assignee IN membersOf(디자인실)` 로 묶여 있다. 그래서 상위
+    Epic·Initiative 가 다른 팀 담당이면 아예 조회되지 않고, 조상 추적이 거기서
+    끊긴다. 그러면 최상위가 TM 인 과제도 중간 프로젝트 키에서 멈춰 운영·KTLO 로
+    잘못 분류된다 (예: PD-8865 → MDC Epic → TM-3111).
+
+    담당자·생성일 조건 없이 부모 키를 따라 직접 가져와 그 구멍을 메운다.
+    이 결과는 체인 추적에만 쓰고 집계 건수에는 넣지 않는다.
+    """
+    known = {i['key'] for i in seed}
+    out, pending = [], parent_keys(seed) - known
+    for depth in range(6):
+        if not pending:
+            break
+        got = normalize(by_keys(pending, FIELDS))
+        if not got:
+            break
+        out += got
+        known |= {i['key'] for i in got}
+        print(f'  {depth + 1}단계: 부모 {len(pending)}개 요청 → {len(got)}건 확보', flush=True)
+        pending = parent_keys(got) - known
+    return out
+
+
 def main():
     os.makedirs('raw', exist_ok=True)
-    counts = {}
+    counts, fetched = {}, {}
     for name, q in QUERIES.items():
         print(f'[{name}] {q["jql"][:110]}…', flush=True)
         issues = normalize(search(q['jql'], q['fields']))
@@ -129,7 +190,16 @@ def main():
                              '빈 결과로 보드를 덮어쓰지 않기 위해 중단합니다.')
         json.dump(issues, open(f'raw/{name}.json', 'w'), ensure_ascii=False)
         counts[name] = len(issues)
+        fetched[name] = issues
         print(f'[{name}] {len(issues)}건 → raw/{name}.json\n', flush=True)
+
+    print('[anc] 끊긴 조상 체인 잇기', flush=True)
+    anc = ancestors(fetched['work'] + fetched['cont'])
+    json.dump(anc, open('raw/anc.json', 'w'), ensure_ascii=False)
+    counts['anc'] = len(anc)
+    pref = collections.Counter(i['key'].split('-')[0] for i in anc)
+    print(f'[anc] {len(anc)}건 → raw/anc.json · 접두어 {dict(pref.most_common(12))}\n', flush=True)
+
     print('조회 완료:', counts)
 
 
