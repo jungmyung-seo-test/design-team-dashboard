@@ -71,10 +71,17 @@ def rootkey(x):
         else: break
     return last
 
+# 업무 유형은 최상위 조상(rootkey)의 프로젝트 접두어로 가른다.
+# 프로젝트가 늘면 여기에 접두어만 더하면 그 프로젝트가 통째로 해당 유형으로 묶인다.
+# 접두어를 고치면 템플릿(shell.html)의 WTYPES 주석도 같이 고칠 것 — 두 곳이 어긋나면
+# 화면 설명과 실제 판정이 달라진다.
+FT_PREFIXES      = {'FT'}
+PRODUCT_PREFIXES = {'TM', 'AP', 'GPRD'}
+
 def worktype(x):
     pj=rootkey(x).split('-')[0]
-    if pj=='FT': return 'FT 과제'
-    if pj=='TM': return '프로덕트 과제'
+    if pj in FT_PREFIXES:      return 'FT 과제'
+    if pj in PRODUCT_PREFIXES: return '프로덕트 과제'
     return '운영·KTLO'
 
 def chain(i):
@@ -104,6 +111,10 @@ for x in ALL:
     else: top[n].append(x)
 
 print('업무 유형:', collections.Counter(worktype(x) for x in ALL if x['a'] in UNIT))
+_rp = collections.Counter(rootkey(x).split('-')[0] for x in ALL if x['a'] in UNIT)
+print('최상위 조상 접두어:', dict(_rp.most_common()))
+_un = sorted(set(_rp) - FT_PREFIXES - PRODUCT_PREFIXES)
+if _un: print('  └ 운영·KTLO 로 떨어진 접두어:', ', '.join(f'{p}({_rp[p]})' for p in _un))
 BR={'active':0,'hold':1,'todo':2,'done':3}
 CR={'진행 중':0,'해야 할 일':1,'완료':2}; TR={'Initiative':0,'Epic':1}
 LOAD={}; DESIGN={}; ISSUES={}
