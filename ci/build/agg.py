@@ -187,8 +187,10 @@ for n,u in UNIT.items():
         return None
     # v2 범위: 2026-07-01 이후 생성 + 상태가 In Design / 완료 / SUGGESTED 인 것만
     v2 = [x for x in leaves if x['created'] >= V2FROM and v2b(x)]
+    # rk = 업무 유형을 정한 최상위 조상 키. 판정 근거가 보드에 없으면 분류가
+    # 이상해도 왜 그런지 확인할 방법이 없다(실제로 그래서 한 번 헤맸다).
     DESIGN[n]=[dict(k=x['k'], s=x['s'], st=x['st'], b=v2b(x), t=x['t'], w=x['w'],
-                    up=near(x), pj=proj(x), cr=x['created'], e=x['md'], a=x['md2'])
+                    up=near(x), pj=proj(x), rk=rootkey(x), cr=x['created'], e=x['md'], a=x['md2'])
                for x in sorted(v2, key=lambda y:(BR2[v2b(y)], y['k']))]
     def kidrows(pk, depth=0):
         """직속 하위 → 그 하위까지 재귀로 중첩 (Initiative → Epic → Design)"""
