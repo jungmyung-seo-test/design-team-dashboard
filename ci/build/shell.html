@@ -931,9 +931,9 @@ function renderDrawer(){
   const groups = [
     {b:"active",  label:"진행 중", sub:"In Progress"},
     {b:"todo",    label:"대기",    sub:"Suggested"},
+    {b:"done",    label:"완료",    sub:"2026.07.01 이후"},
     {b:"backlog", label:"백로그",  sub:"Backlog"},
     {b:"hold",    label:"중단",    sub:"Hold"},
-    {b:"done",    label:"완료",    sub:"2026.07.01 이후"},
   ];
   /* 티켓 좌측 얇은 라인 = 업무 유형 색. 범례는 위 '업무 유형 분포'와 같은 색을 쓴다. */
   const wtVar = w => (WTYPES.find(t => t.k === w) || {}).v || "--sep";

@@ -61,7 +61,7 @@ LEAF={'Design','Task','부작업','작업'}   # '작업'은 UXR 프로젝트의 
 V2FROM='2026-07-01'
 # v2 버킷 — 네 상태는 이름으로 고정하고, 나머지 '진행 중' 카테고리는 전부 active로 보낸다.
 # 이렇게 두면 새로운 진행 상태(Design Review, Hand-Off 등)가 생겨도 자동으로 잡힌다.
-BR2={'active':0,'todo':1,'backlog':2,'hold':3,'done':4}
+BR2={'active':0,'todo':1,'done':2,'backlog':3,'hold':4}   # 화면 표시 순서와 동일하게 둔다
 def v2b(x):
     st=x['st']
     if st=='SUGGESTED': return 'todo'
