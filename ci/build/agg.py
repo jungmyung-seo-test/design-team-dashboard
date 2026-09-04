@@ -1,6 +1,6 @@
 """Jira 원본(raw/*.json) → 보드 데이터 상수. agg3.py를 CI용으로 옮긴 것.
 명부는 코드에 두지 않는다 — BOARD_CONFIG 시크릿(JSON)에서 읽는다."""
-import json, collections, os, datetime, sys
+import json, collections, os, datetime, re, sys
 
 CFG = json.loads(os.environ['BOARD_CONFIG'])
 ROSTER = CFG['roster']
@@ -82,6 +82,21 @@ def rootkey(x):
         else: break
     return last
 
+# 제목에 [KTLO] 태그가 달렸으면 최상위 조상이 무엇이든 운영으로 본다.
+# 프로덕트 Initiative 아래에 KTLO Epic 을 매다는 구조가 흔해서 접두어만으로는
+# 안 갈린다. 예: PD-8823 → [KTLO] 2026 디스커버리디자인(Epic)
+#                        → MSS 2026 KTLO(Initiative) → TM-1981 → 프로덕트로 오분류
+# 첫 대괄호가 아니어도 잡는다 ([PD][KTLO] …, [KTLO][공통] …).
+KTLO_TAG = re.compile(r'\[\s*KTLO\s*\]', re.I)
+
+def ktlo_src(x):
+    """[KTLO] 태그가 달린 자신 또는 조상의 키. 없으면 None.
+       판정 근거를 되짚을 수 있도록 불리언이 아니라 '어디서 걸렸는지'를 돌려준다."""
+    if KTLO_TAG.search(x.get('s') or ''): return x['k']
+    for a in chain(x):
+        if KTLO_TAG.search(a.get('s') or ''): return a['k']
+    return None
+
 # 업무 유형은 최상위 조상(rootkey)의 프로젝트 접두어로 가른다.
 # 프로젝트가 늘면 여기에 접두어만 더하면 그 프로젝트가 통째로 해당 유형으로 묶인다.
 # 접두어를 고치면 템플릿(shell.html)의 WTYPES 주석도 같이 고칠 것 — 두 곳이 어긋나면
@@ -90,6 +105,7 @@ FT_PREFIXES      = {'FT'}
 PRODUCT_PREFIXES = {'TM', 'AP', 'GPRD'}
 
 def worktype(x):
+    if ktlo_src(x):            return '운영·KTLO'   # 조상 접두어보다 우선한다
     pj=rootkey(x).split('-')[0]
     if pj in FT_PREFIXES:      return 'FT 과제'
     if pj in PRODUCT_PREFIXES: return '프로덕트 과제'
@@ -124,6 +140,8 @@ for x in ALL:
 print('업무 유형:', collections.Counter(worktype(x) for x in ALL if x['a'] in UNIT))
 _rp = collections.Counter(rootkey(x).split('-')[0] for x in ALL if x['a'] in UNIT)
 print('최상위 조상 접두어:', dict(_rp.most_common()))
+_kt = sum(1 for x in ALL if x['a'] in UNIT and ktlo_src(x))
+print(f'[KTLO] 태그로 운영 분류: {_kt}건')
 _un = sorted(set(_rp) - FT_PREFIXES - PRODUCT_PREFIXES)
 if _un: print('  └ 운영·KTLO 로 떨어진 접두어:', ', '.join(f'{p}({_rp[p]})' for p in _un))
 BR={'active':0,'hold':1,'todo':2,'done':3}
@@ -190,7 +208,8 @@ for n,u in UNIT.items():
     # rk = 업무 유형을 정한 최상위 조상 키. 판정 근거가 보드에 없으면 분류가
     # 이상해도 왜 그런지 확인할 방법이 없다(실제로 그래서 한 번 헤맸다).
     DESIGN[n]=[dict(k=x['k'], s=x['s'], st=x['st'], b=v2b(x), t=x['t'], w=x['w'],
-                    up=near(x), pj=proj(x), rk=rootkey(x), cr=x['created'], e=x['md'], a=x['md2'])
+                    up=near(x), pj=proj(x), rk=rootkey(x), kt=ktlo_src(x),
+                    cr=x['created'], e=x['md'], a=x['md2'])
                for x in sorted(v2, key=lambda y:(BR2[v2b(y)], y['k']))]
     def kidrows(pk, depth=0):
         """직속 하위 → 그 하위까지 재귀로 중첩 (Initiative → Epic → Design)"""
