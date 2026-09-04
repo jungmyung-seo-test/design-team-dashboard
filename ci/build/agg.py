@@ -82,19 +82,27 @@ def rootkey(x):
         else: break
     return last
 
-# 제목에 [KTLO] 태그가 달렸으면 최상위 조상이 무엇이든 운영으로 본다.
+# 제목에 KTLO 가 들어가면 최상위 조상이 무엇이든 운영으로 본다.
 # 프로덕트 Initiative 아래에 KTLO Epic 을 매다는 구조가 흔해서 접두어만으로는
 # 안 갈린다. 예: PD-8823 → [KTLO] 2026 디스커버리디자인(Epic)
 #                        → MSS 2026 KTLO(Initiative) → TM-1981 → 프로덕트로 오분류
-# 첫 대괄호가 아니어도 잡는다 ([PD][KTLO] …, [KTLO][공통] …).
-KTLO_TAG = re.compile(r'\[\s*KTLO\s*\]', re.I)
+#
+# 대괄호 태그를 요구하지 않는다 (2026-09-04 결정). 실제 이름이 제각각이라서다:
+#   [KTLO] …  ·  [PD][KTLO] …  ·  MSS 2026 KTLO  ·  [29CM] Design KTLO/BAU
+# 대가: 'KTLO 프로세스 개선' 같은 진짜 프로덕트 과제가 생기면 오분류된다.
+# 그때는 KTLO_EXCEPT 에 그 컨테이너 키를 넣어 예외 처리한다.
+KTLO_MARK   = re.compile(r'KTLO', re.I)
+KTLO_EXCEPT = set()      # 이름에 KTLO 가 있지만 운영이 아닌 컨테이너 키
+
+def _ktlo(o):
+    return o.get('k') not in KTLO_EXCEPT and bool(KTLO_MARK.search(o.get('s') or ''))
 
 def ktlo_src(x):
-    """[KTLO] 태그가 달린 자신 또는 조상의 키. 없으면 None.
+    """KTLO 로 표시된 자신 또는 조상의 키. 없으면 None.
        판정 근거를 되짚을 수 있도록 불리언이 아니라 '어디서 걸렸는지'를 돌려준다."""
-    if KTLO_TAG.search(x.get('s') or ''): return x['k']
+    if _ktlo(x): return x['k']
     for a in chain(x):
-        if KTLO_TAG.search(a.get('s') or ''): return a['k']
+        if _ktlo(a): return a['k']
     return None
 
 # 업무 유형은 최상위 조상(rootkey)의 프로젝트 접두어로 가른다.
@@ -141,7 +149,7 @@ print('업무 유형:', collections.Counter(worktype(x) for x in ALL if x['a'] i
 _rp = collections.Counter(rootkey(x).split('-')[0] for x in ALL if x['a'] in UNIT)
 print('최상위 조상 접두어:', dict(_rp.most_common()))
 _kt = sum(1 for x in ALL if x['a'] in UNIT and ktlo_src(x))
-print(f'[KTLO] 태그로 운영 분류: {_kt}건')
+print(f'KTLO 표시로 운영 분류: {_kt}건')
 _un = sorted(set(_rp) - FT_PREFIXES - PRODUCT_PREFIXES)
 if _un: print('  └ 운영·KTLO 로 떨어진 접두어:', ', '.join(f'{p}({_rp[p]})' for p in _un))
 BR={'active':0,'hold':1,'todo':2,'done':3}
