@@ -38,6 +38,7 @@ Pages 로 바로 배포한다. 커밋하지 않으므로 실명·티켓 제목�
 | `ci/build/lock.py` | AES-256-GCM 암호화 (PBKDF2-SHA256 31만 회) |
 | `ci/worker/` | 버튼이 부르는 Cloudflare Worker |
 | `ci/SETUP.md` | 설치·시크릿 등록 절차 |
+| `ci/genpw.py` | 보드 비밀번호 생성기 (`python3 ci/genpw.py`) |
 
 `verify.py` 는 매직 넘버를 쓰지 않는다. 탭 수와 뷰 섹션 수가 **서로 맞는지**를 본다.
 예전에 "탭 3개"라는 고정값을 검사하다가 구조 변경 후 매번 게시가 거부돼 보드가 5일간
