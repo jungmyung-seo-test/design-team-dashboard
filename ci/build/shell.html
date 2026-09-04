@@ -714,7 +714,8 @@ function cardHTML(p){
     : `<span class="none">정보 없음</span>`;
   const hasRole = (p.focus && p.focus.length) || (p.services && p.services.length);
   const c = L.own7 || {};
-  const design = ["Design","Task","부작업","작업"].reduce((a,k) => a + (c[k]||0), 0);
+  /* 부작업은 과제를 쪼갠 하위 단위라 디자인 티켓으로 세지 않는다 (agg.py 의 LEAF 와 같은 기준) */
+  const design = ["Design","Task","작업"].reduce((a,k) => a + (c[k]||0), 0);
   const comp = `<span class="tcount">${typeMark("Initiative")}${c.Initiative||0}</span>`
              + `<span class="tcount">${typeMark("Epic")}${c.Epic||0}</span>`
              + `<span class="tcount">${typeMark("Design")}${design}</span>`;
@@ -956,7 +957,7 @@ function renderDrawer(){
   const TYPEROW = [
     {k:"Initiative", t:["Initiative"],               n:O7.Initiative || 0},
     {k:"Epic",       t:["Epic"],                     n:O7.Epic || 0},
-    {k:"Design",     t:["Design","Task","부작업","작업"], n:["Design","Task","부작업","작업"].reduce((a,k) => a + (O7[k]||0), 0)},
+    {k:"Design",     t:["Design","Task","작업"], n:["Design","Task","작업"].reduce((a,k) => a + (O7[k]||0), 0)},
   ];
   document.getElementById("dBody").innerHTML = `
     ${ACCT[name] ? `<div class="typerow">${TYPEROW.map(x =>

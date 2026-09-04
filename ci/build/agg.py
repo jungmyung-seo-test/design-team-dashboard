@@ -57,7 +57,10 @@ print('전체 고유', len(ALL), collections.Counter(x['t'] for x in ALL))
 print(f'조상 보강: {_added}건 (집계 제외, 체인 추적 전용)')
 print('Initiative 프로젝트:', collections.Counter(x['k'].split('-')[0] for x in ALL if x['t']=='Initiative'))
 
-LEAF={'Design','Task','부작업','작업'}   # '작업'은 UXR 프로젝트의 실무 유형
+# 실무(디자인) 티켓으로 세는 이슈 유형. '작업'은 UXR 프로젝트의 실무 유형이다.
+# '부작업'은 뺀다 — 하나의 과제를 쪼갠 하위 단위(리쿠르팅·리서치 진행·리포트 발행 …)라
+# 독립 티켓으로 세면 같은 일이 여러 건으로 부풀고 부하 점수도 과대평가된다.
+LEAF={'Design','Task','작업'}
 V2FROM='2026-07-01'
 # v2 버킷 — 네 상태는 이름으로 고정하고, 나머지 '진행 중' 카테고리는 전부 active로 보낸다.
 # 이렇게 두면 새로운 진행 상태(Design Review, Hand-Off 등)가 생겨도 자동으로 잡힌다.
@@ -228,7 +231,7 @@ for n,u in UNIT.items():
     def total(rows):
         return sum(1 + total(r['kids']) for r in rows)
     def dsum(rows):
-        """하위 실무 이슈(Design/Task/부작업)의 MD 합계 — 컨테이너 자체 MD는 세지 않는다"""
+        """하위 실무 이슈(LEAF)의 MD 합계 — 컨테이너 자체 MD는 세지 않는다"""
         S=F=T=0.0
         for r in rows:
             if r['t'] in LEAF:
