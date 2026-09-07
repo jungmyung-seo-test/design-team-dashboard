@@ -215,7 +215,13 @@ for n,u in UNIT.items():
             if cur['t'] in ('Epic','Initiative'): return dict(k=cur['k'], s=cur['s'], t=cur['t'])
         return None
     # v2 범위: 2026-07-01 이후 생성 + 상태가 In Design / 완료 / SUGGESTED 인 것만
-    v2 = [x for x in leaves if x['created'] >= V2FROM and v2b(x)]
+    #
+    # 팀장은 실무 티켓을 거의 들지 않고 Initiative·Epic 을 들고 있다. LEAF 만 보면
+    # 목록이 비어 아무것도 안 보인다. 그래서 팀장에 한해 컨테이너까지 목록에 넣는다.
+    # leaves 자체는 건드리지 않는다 — MD 집계가 그걸 쓰기 때문이다.
+    src = leaves if n not in MGR else [x for x in ALL
+                                       if x['a']==n and x['t'] in (LEAF | {'Initiative','Epic'})]
+    v2 = [x for x in src if x['created'] >= V2FROM and v2b(x)]
     # rk = 업무 유형을 정한 최상위 조상 키. 판정 근거가 보드에 없으면 분류가
     # 이상해도 왜 그런지 확인할 방법이 없다(실제로 그래서 한 번 헤맸다).
     DESIGN[n]=[dict(k=x['k'], s=x['s'], st=x['st'], b=v2b(x), t=x['t'], w=x['w'],

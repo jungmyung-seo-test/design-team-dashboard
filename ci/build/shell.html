@@ -193,8 +193,7 @@ main{max-width:1560px; margin:0 auto; padding:20px 24px 80px}
 button.card:hover{transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,.10)}
 button.card:active{transform:scale(.99)}
 .card.sel{box-shadow:0 0 0 3px var(--accent-soft), 0 0 0 1px var(--accent)}
-.card.mgr{cursor:default}
-.card.mgr:hover{transform:none}
+.card.mgr{cursor:pointer}
 
 /* 컬럼이 좁아져도 이름은 쪼개지지 않게 — 대신 상태 뱃지가 아랫줄로 내려간다 */
 .card-top{display:flex; align-items:center; justify-content:space-between; gap:4px 8px; flex-wrap:wrap}
@@ -649,7 +648,10 @@ const TICO = {
   Design:     {c:"#4E9F2F", d:"M5.4 4.3h5.2v7.4L8 9.35 5.4 11.7z"},
 };
 const typeMark = t => {
-  const s = TICO[t];
+  /* Task·작업 처럼 아이콘이 따로 없는 실무 유형은 Design 아이콘으로 대신한다.
+     예전에는 호출부에서 항상 "Design" 을 넘겨 문제가 없었지만, 지금은 티켓의
+     실제 유형을 넘기므로 없는 키가 들어올 수 있다. */
+  const s = TICO[t] || TICO.Design;
   return `<svg viewBox="0 0 16 16" width="12" height="12" aria-label="${t}" role="img">
     <rect x="1.1" y="1.1" width="13.8" height="13.8" rx="4" fill="none" stroke="${s.c}" stroke-width="1.6"/>
     <path d="${s.d}" fill="${s.c}"/></svg>`;
@@ -694,15 +696,26 @@ function mgrCardHTML(p){
   const tagList = a => a && a.length
     ? `<div class="tags">${a.map(x => `<span class="tag">${esc(x)}</span>`).join("")}</div>` : "";
   const hasRole = (p.focus && p.focus.length) || (p.services && p.services.length);
+  /* 팀장은 '진행 중 / 진행 중 프로젝트' 를 쓰지 않는다. 실무 티켓을 직접 들지 않아
+     그 수치가 업무량을 나타내지 못한다. 대신 들고 있는 Initiative·Epic·디자인 티켓
+     수를 보여준다. */
+  const c = ld(p.name).own7 || {};
+  const design = ["Design","Task","작업"].reduce((a,k) => a + (c[k]||0), 0);
+  const comp = `<span class="tcount">${typeMark("Initiative")}${c.Initiative||0}</span>`
+             + `<span class="tcount">${typeMark("Epic")}${c.Epic||0}</span>`
+             + `<span class="tcount">${typeMark("Design")}${design}</span>`;
+  const has = (c.Initiative||0) + (c.Epic||0) + design > 0;
   return `
-  <div class="card mgr">
+  <button class="card mgr" data-name="${esc(p.name)}">
     <div class="card-top">
       <span class="who"><span class="nm">${esc(p.name)}</span></span>
     </div>
     ${hasRole ? `<div class="field"><span class="fk">전문 영역</span><span class="fv">${tagList(p.focus)}</span></div>
       <div class="field"><span class="fk">담당 서비스</span><span class="fv">${tagList(p.services)}</span></div>` : ""}
+    ${has ? `<div class="crow lead"><span>담당 티켓</span><span class="v dim tset">${comp}</span></div>`
+          : `<div class="crow lead"><span class="none">담당 티켓 없음</span></div>`}
     ${p.note ? `<div class="note">${esc(p.note)}</div>` : ""}
-  </div>`;
+  </button>`;
 }
 
 function cardHTML(p){
@@ -954,7 +967,7 @@ function renderDrawer(){
   /* 티켓 좌측 얇은 라인 = 업무 유형 색. 범례는 위 '업무 유형 분포'와 같은 색을 쓴다. */
   const wtVar = w => (WTYPES.find(t => t.k === w) || {}).v || "--sep";
   const row = i => `<div class="irow v2" style="--wc:var(${wtVar(i.w)})" title="${esc(i.w || "")}"><a class="t" href="${issueUrl(i.k)}" target="_blank" rel="noopener">${esc(i.s)}
-        <span class="meta">${typeMark("Design")}<span class="key">${esc(i.k)}</span> · ${esc(i.st)}${i.up ? ` · <span class="up">${esc(i.up.k)}${i.up.s ? " " + esc(i.up.s) : ""}</span>` : ""}</span></a></div>`;
+        <span class="meta">${typeMark(i.t)}<span class="key">${esc(i.k)}</span> · ${esc(i.st)}${i.up ? ` · <span class="up">${esc(i.up.k)}${i.up.s ? " " + esc(i.up.s) : ""}</span>` : ""}</span></a></div>`;
   /* 상태 그룹 안에서도 업무 유형 순서(프로덕트 과제 > FT 과제 > 운영·KTLO)를 따른다. */
   const wtRank = w => { const i = WTYPES.findIndex(t => t.k === w); return i < 0 ? WTYPES.length : i; };
   const block = g => {
