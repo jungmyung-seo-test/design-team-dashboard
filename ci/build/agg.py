@@ -217,10 +217,13 @@ for n,u in UNIT.items():
     # v2 범위: 2026-07-01 이후 생성 + 상태가 In Design / 완료 / SUGGESTED 인 것만
     #
     # 팀장은 실무 티켓을 거의 들지 않고 Initiative·Epic 을 들고 있다. LEAF 만 보면
-    # 목록이 비어 아무것도 안 보인다. 그래서 팀장에 한해 컨테이너까지 목록에 넣는다.
+    # 목록이 비어 아무것도 안 보인다. 그래서 팀장에 한해 컨테이너까지 목록에 넣되,
+    # `top[n]` 을 쓴다 — 상위를 본인이 함께 들고 있으면 하위는 접힌 집합이라
+    # **본인이 가진 최상위 티켓만** 남는다. Initiative 와 그 아래 Epic 을 둘 다
+    # 들고 있을 때 같은 일이 두 줄로 보이던 것을 없앤다.
     # leaves 자체는 건드리지 않는다 — MD 집계가 그걸 쓰기 때문이다.
-    src = leaves if n not in MGR else [x for x in ALL
-                                       if x['a']==n and x['t'] in (LEAF | {'Initiative','Epic'})]
+    src = leaves if n not in MGR else [x for x in top.get(n, [])
+                                       if x['t'] in (LEAF | {'Initiative','Epic'})]
     v2 = [x for x in src if x['created'] >= V2FROM and v2b(x)]
     # rk = 업무 유형을 정한 최상위 조상 키. 판정 근거가 보드에 없으면 분류가
     # 이상해도 왜 그런지 확인할 방법이 없다(실제로 그래서 한 번 헤맸다).
