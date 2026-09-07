@@ -709,12 +709,21 @@ function cardHTML(p){
   if (isMgr(p.name)) return mgrCardHTML(p);
   const L = ld(p.name), S = dstat(p.name);
   /* 부하 뱃지(여유·보통·많음·과부하) 비표시 — 2026-09-07.
-     되돌리려면 아래 두 줄의 주석을 풀고, card-top 의 <span class="state"> 블록도 함께 되살린다.
      판정 기준은 LOADLEVELS2 와 README '부하 판정' 절에 그대로 남아 있다.
-  const lv = loadOf2(S), lvT = lv.t;
-  const segs = [0,1,2,3].map(i =>
-    `<span class="seg" style="${i <= lv.i ? `background:var(${lvT})` : ""}"></span>`).join("");
-  */
+
+     되살리려면 ① 아래 두 줄을 코드로 되돌리고
+       const lv = loadOf2(S), lvT = lv.t;
+       const segs = [0,1,2,3].map(i =>
+         `<span class="seg" style="${ i <= lv.i ? `background:var(${lvT})` : "" }"></span>`).join("");
+
+     ② card-top 의 </span> 뒤에 이 블록을 되살린다
+       <span class="state">
+         <span class="pill" style="color:var(${lvT}); background:var(${lvT}-bg)">${lv.label}</span>
+         <span class="meter" aria-hidden="true">${segs}</span>
+       </span>
+
+     주의: ②는 반드시 템플릿 리터럴 '안'의 실제 코드로 넣어야 한다.
+     HTML 주석(<!-- -->)으로 감싸면 ${} 가 그대로 평가돼 ReferenceError 가 난다. */
   const tagList = a => a && a.length
     ? `<div class="tags">${a.map(x => `<span class="tag">${esc(x)}</span>`).join("")}</div>`
     : `<span class="none">정보 없음</span>`;
@@ -732,12 +741,6 @@ function cardHTML(p){
         <span class="nm">${esc(p.name)}</span>
         <span class="lv">${esc(p.role || "")}</span>
       </span>
-      <!-- 부하 뱃지 비표시 (2026-09-07). 되살리려면 이 주석을 실제 코드로 되돌린다.
-      <span class="state">
-        <span class="pill" style="color:var(${lvT}); background:var(${lvT}-bg)">${lv.label}</span>
-        <span class="meter" aria-hidden="true">${segs}</span>
-      </span>
-      -->
     </div>
     ${hasRole ? `<div class="field"><span class="fk">전문 영역</span><span class="fv">${tagList(p.focus)}</span></div>
       <div class="field"><span class="fk">담당 서비스</span><span class="fv">${tagList(p.services)}</span></div>` : ""}
