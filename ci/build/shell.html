@@ -563,6 +563,8 @@ const LOADLEVELS2 = [
   {lt:9.6,       label:"많음",   i:2, t:"--l2"},   // 7.6 ~ 9.5
   {lt:Infinity,  label:"과부하", i:3, t:"--l3"},   // 9.6 이상
 ];
+/* 2026-09-07 현재 화면에는 표시하지 않는다. 판정 기준을 잃지 않으려고 남겨 둔 것이니
+   지우지 말 것 — 되살릴 때 이 정의를 그대로 쓴다. */
 const loadOf2 = S => LOADLEVELS2.find(l => S.load.score < l.lt);
 const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const blank = {total:0,active:0,done:0,todo:0,mdSum:0,mdFilled:0,mdTotal:0,types:{},epics:[]};
@@ -706,9 +708,13 @@ function mgrCardHTML(p){
 function cardHTML(p){
   if (isMgr(p.name)) return mgrCardHTML(p);
   const L = ld(p.name), S = dstat(p.name);
+  /* 부하 뱃지(여유·보통·많음·과부하) 비표시 — 2026-09-07.
+     되돌리려면 아래 두 줄의 주석을 풀고, card-top 의 <span class="state"> 블록도 함께 되살린다.
+     판정 기준은 LOADLEVELS2 와 README '부하 판정' 절에 그대로 남아 있다.
   const lv = loadOf2(S), lvT = lv.t;
   const segs = [0,1,2,3].map(i =>
     `<span class="seg" style="${i <= lv.i ? `background:var(${lvT})` : ""}"></span>`).join("");
+  */
   const tagList = a => a && a.length
     ? `<div class="tags">${a.map(x => `<span class="tag">${esc(x)}</span>`).join("")}</div>`
     : `<span class="none">정보 없음</span>`;
@@ -726,10 +732,12 @@ function cardHTML(p){
         <span class="nm">${esc(p.name)}</span>
         <span class="lv">${esc(p.role || "")}</span>
       </span>
+      <!-- 부하 뱃지 비표시 (2026-09-07). 되살리려면 이 주석을 실제 코드로 되돌린다.
       <span class="state">
         <span class="pill" style="color:var(${lvT}); background:var(${lvT}-bg)">${lv.label}</span>
         <span class="meter" aria-hidden="true">${segs}</span>
       </span>
+      -->
     </div>
     ${hasRole ? `<div class="field"><span class="fk">전문 영역</span><span class="fv">${tagList(p.focus)}</span></div>
       <div class="field"><span class="fk">담당 서비스</span><span class="fv">${tagList(p.services)}</span></div>` : ""}
@@ -912,17 +920,21 @@ function openDrawer(name, wt){
 function renderDrawer(){
   const name = drawerName;
   const p = TEAM.find(x => x.name === name); if (!p) return;
-  const L = ld(name), S = dstat(name), lv = loadOf2(S);
+  const L = ld(name), S = dstat(name);
   document.getElementById("dName").textContent = name;
-  /* 부하 표기는 카드와 동일한 뱃지 + 미터로 맞춘다. */
+  /* 부하 뱃지 비표시 — 2026-09-07. 카드와 같은 기준으로 함께 껐다.
+     되돌리려면 위 줄에 `, lv = loadOf2(S)` 를 다시 붙이고 아래 주석을 코드로 되살린다.
   const dsegs = [0,1,2,3].map(i =>
     `<span class="seg" style="${i <= lv.i ? `background:var(${lv.t})` : ""}"></span>`).join("");
+  */
   document.getElementById("dUnit").innerHTML =
+    `<span class="du">${esc(p.unit)} · ${esc(p.role || "")}</span>`;
+  /* 되살릴 때의 원래 innerHTML:
     `<span class="du">${esc(p.unit)} · ${esc(p.role || "")}</span>
      <span class="state">
        <span class="pill" style="color:var(${lv.t}); background:var(${lv.t}-bg)">${lv.label}</span>
        <span class="meter" aria-hidden="true">${dsegs}</span>
-     </span>`;
+     </span>` */
   const D = dg(name);
   const list = drawerWT ? D.filter(i => i.w === drawerWT) : D;
   const TC = D.reduce((m,x) => (m[x.w] = (m[x.w]||0) + 1, m), {});
