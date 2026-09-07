@@ -698,8 +698,12 @@ function mgrCardHTML(p){
   const hasRole = (p.focus && p.focus.length) || (p.services && p.services.length);
   /* 팀장은 '진행 중 / 진행 중 프로젝트' 를 쓰지 않는다. 실무 티켓을 직접 들지 않아
      그 수치가 업무량을 나타내지 못한다. 대신 들고 있는 Initiative·Epic·디자인 티켓
-     수를 보여준다. */
-  const c = ld(p.name).own7 || {};
+     수를 보여준다.
+
+     수치는 상세 패널과 같은 배열(DESIGN)에서 센다. LOAD.own7 을 쓰면 롤업과
+     기준일이 달라 카드와 목록이 어긋난다 — 실제로 카드 Epic 12 / 목록 9건 처럼
+     벌어졌다. 한 배열에서 세야 두 곳이 항상 같다. */
+  const c = dg(p.name).reduce((m, x) => (m[x.t] = (m[x.t]||0) + 1, m), {});
   const design = ["Design","Task","작업"].reduce((a,k) => a + (c[k]||0), 0);
   const comp = `<span class="tcount">${typeMark("Initiative")}${c.Initiative||0}</span>`
              + `<span class="tcount">${typeMark("Epic")}${c.Epic||0}</span>`

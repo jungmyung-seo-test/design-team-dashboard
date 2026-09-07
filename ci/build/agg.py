@@ -224,7 +224,10 @@ for n,u in UNIT.items():
     # leaves 자체는 건드리지 않는다 — MD 집계가 그걸 쓰기 때문이다.
     src = leaves if n not in MGR else [x for x in top.get(n, [])
                                        if x['t'] in (LEAF | {'Initiative','Epic'})]
-    v2 = [x for x in src if x['created'] >= V2FROM and v2b(x)]
+    # 팀장은 기준일을 CUT(조회 시작일)까지 넓힌다. 팀장이 든 Initiative 는 오래
+    # 열려 있어 V2FROM(7/1) 로 자르면 대부분 사라진다. 디자이너는 그대로 V2FROM.
+    since = V2FROM if n not in MGR else CUT
+    v2 = [x for x in src if x['created'] >= since and v2b(x)]
     # rk = 업무 유형을 정한 최상위 조상 키. 판정 근거가 보드에 없으면 분류가
     # 이상해도 왜 그런지 확인할 방법이 없다(실제로 그래서 한 번 헤맸다).
     DESIGN[n]=[dict(k=x['k'], s=x['s'], st=x['st'], b=v2b(x), t=x['t'], w=x['w'],
