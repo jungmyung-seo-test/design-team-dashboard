@@ -17,18 +17,81 @@
 - Actions 로그는 공개 리포라 누구나 본다. 그래서 스크립트가 실명을 가려 찍는다
   (`김*아`). 디버깅한다고 `BOARD_VERBOSE` 를 켜서 푸시하지 말 것
 
-## 1. 환경 준비
+## 1. 시작하기
+
+### 준비물
+
+| | 용도 |
+|---|---|
+| git | 클론·푸시 |
+| **Node 18 이상** | 로컬 렌더 확인 (`node -v` 로 확인) |
+| 브라우저 | 렌더 결과 확인 |
+| Claude Code (선택) | 작업 보조 |
+
+Python 은 로컬에서 쓸 일이 거의 없다. 집계는 CI 에서만 돈다.
+
+### 1) 클론
 
 ```bash
 git clone git@github.com:jungmyung-seo-test/design-team-dashboard.git
 cd design-team-dashboard
 ```
 
-**`ci/BOARD_CONFIG.json` 을 리포 오너에게 따로 받아** 그 경로에 둔다.
-리포에는 없는 파일이고, 로컬에서 무언가 돌려볼 때 필요하다.
+SSH 키가 없으면 HTTPS 로 받아도 된다.
+`git clone https://github.com/jungmyung-seo-test/design-team-dashboard.git`
 
-Claude Code 를 쓴다면 이 리포 디렉터리에서 실행하면 된다. 어떤 계정으로
-로그인했는지는 상관없다 — 푸시는 그 컴퓨터의 git 자격증명으로 나간다.
+### 2) 명부 파일 받아 두기
+
+`ci/BOARD_CONFIG.json` 을 **리포 오너에게 따로 받아** 그 경로에 둔다.
+구성원 명부라 리포에는 없다. `.gitignore` 가 커밋을 막고 있으니 그대로 두면 된다.
+
+### 3) 보드 비밀번호 받아 두기
+
+로컬 렌더 확인에 필요하다. 팀에 공유된 그 비밀번호다.
+
+### 4) Claude Code 로 시작한다면
+
+**이 리포 폴더 안에서** 실행한다.
+
+```bash
+cd design-team-dashboard
+claude
+```
+
+Claude 계정이 회사 메일이든 개인 메일이든 상관없다. 푸시는 Claude 계정이 아니라
+**그 컴퓨터의 git 자격증명**으로 나가므로, GitHub 협업자로 추가돼 있으면 된다.
+
+첫 대화는 이렇게 시작하면 맥락을 빨리 잡는다.
+
+> README.md 와 CONTRIBUTING.md 를 읽고 이 보드가 어떻게 만들어져서
+> 어떻게 배포되는지 정리해줘. 특히 업무 유형 분류 규칙과 푸시 후 반영 절차를.
+
+---
+
+## 1-1. 한 번 해보기 — 전형적인 작업 흐름
+
+화면 문구 하나를 고친다고 하자.
+
+```bash
+# 1) 고친다
+#    ci/build/shell.html 에서 해당 문구를 찾아 수정
+
+# 2) 화면이 실제로 그려지는지 확인 (필수)
+BOARD_PASSWORD='비밀번호' node ci/rendertest.mjs
+open _rendertest.html
+#    → 카드가 인원수만큼 보이는가 · 카드를 눌러 패널이 열리는가
+#    → 개발자도구 콘솔에 오류가 없는가
+
+# 3) 푸시
+git add -A && git commit -m "..." && git push
+
+# 4) 30초쯤 기다렸다가 보드에서 '지금 갱신' 클릭
+#    바로 누르면 Actions 가 직전 커밋으로 체크아웃하는 경우가 있다
+
+# 5) 40초쯤 뒤 보드를 새로고침해 확인
+```
+
+**2번을 건너뛰지 않는다.** 이유는 3번 항목에 적어 뒀다.
 
 ## 2. 무엇을 고치게 되나
 

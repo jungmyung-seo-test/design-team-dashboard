@@ -28,6 +28,8 @@ const CONSTS = ["TEAM", "LOAD", "META", "DESIGN", "ACCT", "JIRA", "MANAGERS", "O
 
 const die = m => { console.error(m); process.exit(1); };
 
+if (typeof fetch !== "function") die("Node 18 이상이 필요합니다 (현재 " + process.version + ")");
+
 const pw = process.env.BOARD_PASSWORD;
 if (!pw) die("BOARD_PASSWORD 환경변수가 필요합니다 (팀에 공유된 보드 비밀번호)");
 
