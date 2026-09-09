@@ -22,3 +22,6 @@ site-locked/
 
 # macOS
 .DS_Store
+
+# 렌더 테스트 산출물 (평문 보드 — 실명이 들어 있다)
+_rendertest.html
